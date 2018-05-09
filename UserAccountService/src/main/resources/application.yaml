@@ -1,0 +1,14 @@
+spring:
+  azure:
+    activedirectory:
+      usersURL: https://graph.microsoft.com/v1.0/%s/users
+      oauthURL: https://login.microsoftonline.com/%s/oauth2/token
+      client-id:
+      client-secret:
+      resourceURL: https://graph.microsoft.com
+      tenant: 
+  security:
+    crud_username: crudusername
+    crud_password: crudpassword
+server:
+  port: 7676

@@ -1,0 +1,87 @@
+swagger: '2.0'
+info:
+  description: Api Documentation
+  version: '1.0'
+  title: Api Documentation
+  termsOfService: 'urn:tos'
+  contact: {}
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0'
+host: 'localhost:7676'
+basePath: /
+tags:
+  - name: user-account-controller
+    description: User Account Controller
+  - name: User Account Service
+    description: User accounts
+paths:
+  /useraccount/create:
+    post:
+      tags:
+        - user-account-controller
+      summary: Create a User Account
+      operationId: create
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: userDetails
+          description: userDetails
+          required: true
+          schema:
+            $ref: '#/definitions/UserDetails'
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+  '/useraccount/delete/{userID}':
+    delete:
+      tags:
+        - user-account-controller
+      summary: Delete a User Account
+      operationId: delete
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: userID
+          in: path
+          description: userID
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+  /useraccount/users:
+    get:
+      tags:
+        - user-account-controller
+      summary: Fetch User Accounts
+      operationId: users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+definitions:
+  UserDetails:
+    type: object
+    properties:
+      userName:
+        type: string
+      emailAddress:
+        type: string
+      password:
+        type: string
+
