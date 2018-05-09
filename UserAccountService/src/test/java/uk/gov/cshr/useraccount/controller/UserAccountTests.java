@@ -6,6 +6,7 @@ import java.util.List;
 import javax.inject.Inject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ import uk.gov.cshr.useraccount.model.AzureUser;
 import uk.gov.cshr.useraccount.model.UserDetails;
 import uk.gov.cshr.useraccount.service.AzureUserAccountService;
 
+@Ignore
 @ActiveProfiles("dev")
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, classes = UserAccountServiceApplication.class)
