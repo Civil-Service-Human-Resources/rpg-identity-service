@@ -1,4 +1,6 @@
 spring:
+  test:
+    testEmailAccount: 
   azure:
     activedirectory:
       usersURL: https://graph.microsoft.com/v1.0/%s/users
@@ -9,7 +11,7 @@ spring:
       tenant:
   notifyservice:
     templateid:
-    notifyApiKey: 
+    notifyApiKey:
     accountEnableURL: http://localhost:7676/useraccount/enable/%s
   security:
     crud_username: crudusername

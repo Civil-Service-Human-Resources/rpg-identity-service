@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AzureUser implements Serializable {
 
-//    private String id;
+    private String id;
 //    private Object businessPhones;
     private boolean accountEnabled;
     private String displayName;

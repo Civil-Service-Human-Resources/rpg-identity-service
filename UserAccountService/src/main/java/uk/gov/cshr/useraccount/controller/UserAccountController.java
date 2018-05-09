@@ -39,6 +39,14 @@ public class UserAccountController {
         return ResponseEntity.created(uri).body(userID);
     }
 
+    @RequestMapping(method = RequestMethod.PATCH, value = "/enable/{userID}")
+    @ApiOperation(value = "Enable a User Account", nickname = "enable")
+    public ResponseEntity<String> enable(@PathVariable String userID) {
+
+        userAccountService.enable(userID);
+        return ResponseEntity.accepted().build();
+    }
+
     @RequestMapping(method = RequestMethod.DELETE, value = "/delete/{userID}")
     @ApiOperation(value = "Delete a User Account", nickname = "delete")
     public ResponseEntity<String> delete(@PathVariable String userID) {

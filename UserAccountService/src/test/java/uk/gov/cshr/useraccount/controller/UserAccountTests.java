@@ -5,11 +5,13 @@ import java.nio.charset.Charset;
 import java.util.List;
 import javax.inject.Inject;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener;
 import org.springframework.http.MediaType;
@@ -45,6 +47,9 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
             MediaType.APPLICATION_JSON.getSubtype(),
             Charset.forName("utf8"));
 
+    @Value("${spring.test.testEmailAccount}")
+    private String testEmailAccount;
+
     @Inject
     private WebApplicationContext webApplicationContext;
 
@@ -75,10 +80,12 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
 
         ObjectMapper objectMapper = new ObjectMapper();
 
+        String userName = "testuser" + azureUsersSize + 1;
+
         UserDetails userDetails = UserDetails.builder()
-				.userName("testuser" + azureUsersSize + 1)
+				.userName(userName)
 				.password("1234qwerQWER")
-				.emailAddress("anyemailAddress" + azureUsersSize + 1)
+				.emailAddress(testEmailAccount)
 				.build();
 
         String json = objectMapper.writeValueAsString(userDetails);
@@ -91,6 +98,15 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String response = mvcResult.getResponse().getContentAsString();
+        AzureUser azureUser = azureUserAccountService.getUser(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals("user created", userName, azureUser.getDisplayName());
+        
+        this.mockMvc.perform(patch("/useraccount/enable/" + azureUser.getId())
+				.with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                .contentType(APPLICATION_JSON_UTF8)
+                .content(json)
+                .accept(APPLICATION_JSON_UTF8))
+                .andExpect(status().isAccepted())
+                .andReturn();
     }
 }

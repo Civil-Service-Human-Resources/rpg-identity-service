@@ -17,6 +17,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -32,6 +33,7 @@ import org.springframework.web.client.RestTemplate;
 import uk.gov.cshr.useraccount.model.AzureUser;
 import uk.gov.cshr.useraccount.model.PasswordProfile;
 import uk.gov.cshr.useraccount.model.UserDetails;
+import uk.gov.service.notify.NotificationClientException;
 
 @Service
 public class AzureUserAccountService {
@@ -60,6 +62,9 @@ public class AzureUserAccountService {
 	@Value("${spring.azure.activedirectory.tenant}")
 	private String tenant;
 
+    @Autowired
+    private NotifyService notifyService;
+
     /**
      * Return newly created ID
      * @param userDetails
@@ -69,7 +74,7 @@ public class AzureUserAccountService {
 
         try {
             AzureUser azureUser = AzureUser.builder()
-                    .accountEnabled(Boolean.TRUE)
+                    .accountEnabled(Boolean.FALSE)
                     .displayName(userDetails.getUserName())
                     .mailNickname(userDetails.getUserName())
                     .userPrincipalName(userDetails.getUserName() + "@" + tenant)
@@ -90,9 +95,14 @@ public class AzureUserAccountService {
                     String.format(usersURL, tenant), HttpMethod.POST, entity, String.class);
 
             JSONObject jsonObject = new JSONObject(response.getBody());
-            return jsonObject.getString("id");
+            String userID = jsonObject.getString("id");
+
+            notifyService.emailEnableAccountCode(userDetails.getEmailAddress(), userID, userDetails.getUserName());
+
+            return userID;
+
         }
-        catch (JsonProcessingException | JSONException | RestClientException e) {
+        catch (JsonProcessingException | JSONException | RestClientException | NotificationClientException e) {
             throw new RuntimeException(e);
         }
     }
@@ -132,6 +142,26 @@ public class AzureUserAccountService {
             }
 
             return azureUsers;
+        }
+        catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public AzureUser getUser(String userID) {
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", getAccessToken());
+            headers.add("Content-Type", "application/json");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<String> response = restTemplate.exchange(
+                    String.format(usersURL + "/" + userID, tenant), HttpMethod.GET, entity, String.class);
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode responseNode = objectMapper.readTree(response.getBody());
+            return objectMapper.readValue(responseNode.toString(), AzureUser.class);
         }
         catch (IOException ex) {
             throw new RuntimeException(ex);
@@ -190,5 +220,41 @@ public class AzureUserAccountService {
                 = new HttpComponentsClientHttpRequestFactory();
         clientHttpRequestFactory.setConnectTimeout(timeout);
         return clientHttpRequestFactory;
+    }
+
+    public void enable(String userID) {
+
+        AzureUser azureUser = getUser(userID);
+        azureUser.setAccountEnabled(true);
+        updateUser(userID, azureUser);
+
+    }
+
+    public void updateUser(String userID, AzureUser azureUser) {
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            String json = objectMapper.writeValueAsString(azureUser);
+
+            RestTemplate restTemplate = new RestTemplate();
+            HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+            requestFactory.setConnectTimeout(10000);
+            requestFactory.setReadTimeout(10000);
+
+            restTemplate.setRequestFactory(requestFactory);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", getAccessToken());
+            headers.add("Content-Type", "application/json");
+
+            json = "{\"accountEnabled\":true}";
+
+            HttpEntity<String> entity = new HttpEntity<>(json, headers);
+            ResponseEntity<String> response = restTemplate.exchange(
+                    String.format(usersURL + "/" + userID, tenant), HttpMethod.PATCH, entity, String.class);
+        }
+        catch (JsonProcessingException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

@@ -59,6 +59,27 @@ paths:
           description: OK
           schema:
             type: string
+  '/useraccount/enable/{userID}':
+    patch:
+      tags:
+        - user-account-controller
+      summary: Enable a User Account
+      operationId: enable
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: userID
+          in: path
+          description: userID
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
   /useraccount/users:
     get:
       tags:
@@ -84,4 +105,3 @@ definitions:
         type: string
       password:
         type: string
-
