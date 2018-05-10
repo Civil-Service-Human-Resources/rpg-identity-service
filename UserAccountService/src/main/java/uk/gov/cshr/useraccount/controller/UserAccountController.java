@@ -2,6 +2,8 @@ package uk.gov.cshr.useraccount.controller;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import java.net.URI;
 import java.util.List;
 import javax.annotation.security.RolesAllowed;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.cshr.useraccount.exceptions.NameAlreadyExistsException;
+import uk.gov.cshr.useraccount.exceptions.UserAccountError;
 import uk.gov.cshr.useraccount.model.AzureUser;
 import uk.gov.cshr.useraccount.model.UserDetails;
 import uk.gov.cshr.useraccount.service.AzureUserAccountService;
@@ -32,6 +35,9 @@ public class UserAccountController {
 
     @RequestMapping(method = RequestMethod.POST, value = "/create", produces = MediaType.TEXT_PLAIN_VALUE)
     @ApiOperation(value = "Create a User Account", nickname = "create")
+    @ApiResponses(value = {
+            @ApiResponse(code = 226, message = "The username already exists", response = UserAccountError.class)
+    })
     public ResponseEntity<String> create(@RequestBody UserDetails userDetails) 
             throws NameAlreadyExistsException {
 
