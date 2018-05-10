@@ -108,5 +108,13 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
                 .accept(APPLICATION_JSON_UTF8))
                 .andExpect(status().isAccepted())
                 .andReturn();
+
+        mvcResult = this.mockMvc.perform(post("/useraccount/create")
+				.with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                .contentType(APPLICATION_JSON_UTF8)
+                .content(json)
+                .accept(APPLICATION_JSON_UTF8))
+                .andExpect(status().isImUsed())
+                .andReturn();
     }
 }

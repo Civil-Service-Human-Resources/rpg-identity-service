@@ -25,7 +25,7 @@ paths:
       consumes:
         - application/json
       produces:
-        - application/json
+        - text/plain
       parameters:
         - in: body
           name: userDetails
@@ -94,8 +94,32 @@ paths:
         '200':
           description: OK
           schema:
-            type: string
+            type: array
+            items:
+              $ref: '#/definitions/AzureUser'
 definitions:
+  AzureUser:
+    type: object
+    properties:
+      accountEnabled:
+        type: boolean
+      displayName:
+        type: string
+      id:
+        type: string
+      mailNickname:
+        type: string
+      passwordProfile:
+        $ref: '#/definitions/PasswordProfile'
+      userPrincipalName:
+        type: string
+  PasswordProfile:
+    type: object
+    properties:
+      forceChangePasswordNextSignIn:
+        type: boolean
+      password:
+        type: string
   UserDetails:
     type: object
     properties:

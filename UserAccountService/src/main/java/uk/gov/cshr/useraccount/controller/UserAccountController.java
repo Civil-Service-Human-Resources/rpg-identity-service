@@ -3,6 +3,7 @@ package uk.gov.cshr.useraccount.controller;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import java.net.URI;
+import java.util.List;
 import javax.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import uk.gov.cshr.useraccount.exceptions.NameAlreadyExistsException;
+import uk.gov.cshr.useraccount.model.AzureUser;
 import uk.gov.cshr.useraccount.model.UserDetails;
 import uk.gov.cshr.useraccount.service.AzureUserAccountService;
 
@@ -27,9 +30,10 @@ public class UserAccountController {
 	@Autowired
     private AzureUserAccountService userAccountService;
 
-    @RequestMapping(method = RequestMethod.POST, value = "/create")
+    @RequestMapping(method = RequestMethod.POST, value = "/create", produces = MediaType.TEXT_PLAIN_VALUE)
     @ApiOperation(value = "Create a User Account", nickname = "create")
-    public ResponseEntity<String> create(@RequestBody UserDetails userDetails) {
+    public ResponseEntity<String> create(@RequestBody UserDetails userDetails) 
+            throws NameAlreadyExistsException {
 
         String userID = userAccountService.create(userDetails);
         URI uri = ServletUriComponentsBuilder
@@ -57,9 +61,9 @@ public class UserAccountController {
 
     @RequestMapping(method = RequestMethod.GET, value = "/users")
     @ApiOperation(value = "Fetch User Accounts", nickname = "users")
-    public ResponseEntity<String> users() {
+    public ResponseEntity<List<AzureUser>> users() {
 
-        userAccountService.getUsers();
-        return ResponseEntity.ok().build();
+        List<AzureUser> azureUsers = userAccountService.getUsers();
+        return ResponseEntity.ok().body(azureUsers);
     }
 }

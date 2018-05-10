@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpRequestFactory;
@@ -30,6 +31,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import uk.gov.cshr.useraccount.exceptions.NameAlreadyExistsException;
 import uk.gov.cshr.useraccount.model.AzureUser;
 import uk.gov.cshr.useraccount.model.PasswordProfile;
 import uk.gov.cshr.useraccount.model.UserDetails;
@@ -69,8 +71,17 @@ public class AzureUserAccountService {
      * Return newly created ID
      * @param userDetails
      * @return
+     * @throws uk.gov.cshr.useraccount.exceptions.NameAlreadyExistsException
      */
-    public String create(UserDetails userDetails) {
+    public String create(UserDetails userDetails) throws NameAlreadyExistsException {
+
+        List<AzureUser> existingUsers = getUsers();
+        for (AzureUser existingUser : existingUsers) {
+            if ( existingUser.getUserPrincipalName().equals(userDetails.getUserName() + "@" + tenant) ) {
+                log.debug(userDetails.getUserName() + "@" + tenant + " exists");
+                throw new NameAlreadyExistsException(userDetails.getUserName());
+            }
+        }
 
         try {
             AzureUser azureUser = AzureUser.builder()
@@ -88,7 +99,7 @@ public class AzureUserAccountService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.add("Authorization", getAccessToken());
-            headers.add("Content-Type", "application/json");
+            headers.add("Content-Type", MediaType.APPLICATION_JSON_UTF8_VALUE);
             HttpEntity<String> entity = new HttpEntity<>(json, headers);
 
             ResponseEntity<String> response = restTemplate.exchange(
