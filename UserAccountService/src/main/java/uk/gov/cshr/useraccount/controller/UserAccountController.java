@@ -33,7 +33,7 @@ public class UserAccountController {
 	@Autowired
     private AzureUserAccountService userAccountService;
 
-    @RequestMapping(method = RequestMethod.POST, value = "/create", produces = MediaType.TEXT_PLAIN_VALUE)
+    @RequestMapping(method = RequestMethod.POST, value = "/create")
     @ApiOperation(value = "Create a User Account", nickname = "create")
     @ApiResponses(value = {
             @ApiResponse(code = 226, message = "The username already exists", response = UserAccountError.class)
