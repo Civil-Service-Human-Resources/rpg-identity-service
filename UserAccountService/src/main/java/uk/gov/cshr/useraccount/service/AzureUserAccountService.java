@@ -3,10 +3,7 @@ package uk.gov.cshr.useraccount.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -22,11 +19,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -118,14 +114,14 @@ public class AzureUserAccountService {
         }
     }
 
-	public void delete(String userID) {
+	public ResponseEntity<String> delete(String userID) {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", getAccessToken());
 		headers.add("Content-Type", "application/json");
 		HttpEntity<String> entity = new HttpEntity<>(headers);
 		RestTemplate restTemplate = new RestTemplate();
-		ResponseEntity<String> response = restTemplate.exchange(
+		return restTemplate.exchange(
                 String.format(usersURL, tenant) + "/" + userID, HttpMethod.DELETE, entity, String.class);
 	}
 
@@ -186,86 +182,53 @@ public class AzureUserAccountService {
         }
         else {
             try {
-
-                ClientHttpRequestFactory requestFactory = getClientHttpRequestFactory();
-
                 String body = "grant_type=client_credentials";
                 body += "&client_id=" + clientID;
                 body += "&client_secret=" + clientSecret;
                 body += "&resource=" + resourceURL;
 
-                URI uri = new URI(String.format(oauthURL, tenant));
+                RequestEntity request = RequestEntity.post(
+                        new URI(String.format(oauthURL, tenant)))
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .body(body);
 
-                ClientHttpRequest request = requestFactory.createRequest(uri, HttpMethod.POST);
-                request.getBody().write(body.getBytes());
-                request.getBody().flush();
-                request.getBody().close();
+                ResponseEntity<String> response = new RestTemplate().exchange(request, String.class);
 
-                ClientHttpResponse response = request.execute();
-                InputStream responseInputStream = response.getBody();
+                if ( response.getStatusCode().equals(HttpStatus.OK) ) {
 
-                BufferedReader streamReader = new BufferedReader(
-                        new InputStreamReader(responseInputStream, "UTF-8"));
-                StringBuilder responseStrBuilder = new StringBuilder();
+                    JSONObject json = new JSONObject(response.getBody());
+                        log.debug("getAccessToken json=" + json);
+                        tokenExpiryDate = new Date(json.getLong("expires_on"));
 
-                String inputStr;
-                while ((inputStr = streamReader.readLine()) != null) {
-                    responseStrBuilder.append(inputStr);
+                    return json.getString("access_token");
                 }
-                JSONObject json = new JSONObject(responseStrBuilder.toString());
-				log.debug("getAccessToken json=" + json);
-                tokenExpiryDate = new Date(json.getLong("expires_on"));
-
-                return json.getString("access_token");
+                else {
+                    throw new RuntimeException("Could not get access token");
+                }
             }
-            catch (URISyntaxException | IOException | JSONException ex ) {
-                throw new RuntimeException(ex);
+            catch (URISyntaxException | JSONException | RestClientException ex ) {
+                throw new RuntimeException("Could not get access token", ex);
             }
         }
     }
 
-    private ClientHttpRequestFactory getClientHttpRequestFactory() {
+    public ResponseEntity<String> enableUser(String userID) {
 
-        int timeout = 5000;
-        HttpComponentsClientHttpRequestFactory clientHttpRequestFactory
-                = new HttpComponentsClientHttpRequestFactory();
-        clientHttpRequestFactory.setConnectTimeout(timeout);
-        return clientHttpRequestFactory;
-    }
+        RestTemplate restTemplate = new RestTemplate();
+        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(10000);
+        requestFactory.setReadTimeout(10000);
 
-    public void enable(String userID) {
+        restTemplate.setRequestFactory(requestFactory);
 
-        AzureUser azureUser = getUser(userID);
-        azureUser.setAccountEnabled(true);
-        updateUser(userID, azureUser);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", getAccessToken());
+        headers.add("Content-Type", "application/json");
 
-    }
+        String json = "{\"accountEnabled\":true}";
 
-    public void updateUser(String userID, AzureUser azureUser) {
-
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            String json = objectMapper.writeValueAsString(azureUser);
-
-            RestTemplate restTemplate = new RestTemplate();
-            HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
-            requestFactory.setConnectTimeout(10000);
-            requestFactory.setReadTimeout(10000);
-
-            restTemplate.setRequestFactory(requestFactory);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Authorization", getAccessToken());
-            headers.add("Content-Type", "application/json");
-
-            json = "{\"accountEnabled\":true}";
-
-            HttpEntity<String> entity = new HttpEntity<>(json, headers);
-            ResponseEntity<String> response = restTemplate.exchange(
-                    String.format(usersURL + "/" + userID, tenant), HttpMethod.PATCH, entity, String.class);
-        }
-        catch (JsonProcessingException ex) {
-            throw new RuntimeException(ex);
-        }
+        HttpEntity<String> entity = new HttpEntity<>(json, headers);
+        return restTemplate.exchange(
+                String.format(usersURL + "/" + userID, tenant), HttpMethod.PATCH, entity, String.class);
     }
 }
