@@ -53,16 +53,14 @@ public class UserAccountController {
     @ApiOperation(value = "Enable a User Account", nickname = "enable")
     public ResponseEntity<String> enable(@PathVariable String userID) {
 
-        userAccountService.enable(userID);
-        return ResponseEntity.accepted().build();
+        return userAccountService.enableUser(userID);
     }
 
     @RequestMapping(method = RequestMethod.DELETE, value = "/delete/{userID}")
     @ApiOperation(value = "Delete a User Account", nickname = "delete")
     public ResponseEntity<String> delete(@PathVariable String userID) {
 
-        userAccountService.delete(userID);
-        return ResponseEntity.noContent().build();
+        return userAccountService.delete(userID);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/users")
