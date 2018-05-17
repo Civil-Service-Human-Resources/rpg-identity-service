@@ -72,4 +72,12 @@ public class UserAccountController {
         List<AzureUser> azureUsers = userAccountService.getUsers();
         return ResponseEntity.ok().body(azureUsers);
     }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/authenticate")
+    @ApiOperation(value = "authenticate User Account", nickname = "authenticate")
+    public ResponseEntity<String> authenticate(@RequestBody UserDetails userDetails) {
+
+        String azureUserId = userAccountService.authenticate(userDetails.getEmailAddress(), userDetails.getPassword());
+        return ResponseEntity.ok().body(azureUserId);
+    }
 }

@@ -3,16 +3,27 @@ package uk.gov.cshr.useraccount.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.aad.adal4j.AuthenticationContext;
+import com.microsoft.aad.adal4j.AuthenticationException;
+import com.microsoft.aad.adal4j.AuthenticationResult;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import javax.naming.ServiceUnavailableException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -22,6 +33,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
@@ -34,7 +46,9 @@ import org.springframework.web.client.RestTemplate;
 import uk.gov.cshr.useraccount.exceptions.NameAlreadyExistsException;
 import uk.gov.cshr.useraccount.model.AzureUser;
 import uk.gov.cshr.useraccount.model.PasswordProfile;
+import uk.gov.cshr.useraccount.model.UserAccount;
 import uk.gov.cshr.useraccount.model.UserDetails;
+import uk.gov.cshr.useraccount.repository.UserAccountRepository;
 import uk.gov.service.notify.NotificationClientException;
 
 @Service
@@ -52,11 +66,14 @@ public class AzureUserAccountService {
 	@Value("${spring.azure.activedirectory.oauthURL}")
     private String oauthURL;
 
-    @Value("${spring.azure.activedirectory.client-id}")
-    private String clientID;
+    @Value("${spring.azure.activedirectory.native-client-id}")
+    private String nativeClientID;
 
-    @Value("${spring.azure.activedirectory.client-secret}")
-    private String clientSecret;
+    @Value("${spring.azure.activedirectory.web-client-id}")
+    private String webClientID;
+
+    @Value("${spring.azure.activedirectory.web-client-secret}")
+    private String webClientSecret;
 
 	@Value("${spring.azure.activedirectory.resourceURL}")
     private String resourceURL;
@@ -64,8 +81,14 @@ public class AzureUserAccountService {
 	@Value("${spring.azure.activedirectory.tenant}")
 	private String tenant;
 
+    @Value("${spring.azure.activedirectory.authority}")
+	private String authority;
+
     @Autowired
     private NotifyService notifyService;
+
+    @Autowired
+    private UserAccountRepository userAccountRepository;
 
     /**
      * Return newly created ID
@@ -75,20 +98,30 @@ public class AzureUserAccountService {
      */
     public String create(UserDetails userDetails) throws NameAlreadyExistsException {
 
-        List<AzureUser> existingUsers = getUsers();
-        for (AzureUser existingUser : existingUsers) {
-            if ( existingUser.getUserPrincipalName().equals(userDetails.getUserName() + "@" + tenant) ) {
-                log.debug(userDetails.getUserName() + "@" + tenant + " exists");
-                throw new NameAlreadyExistsException(userDetails.getUserName());
-            }
+        String name = userDetails.getEmailAddress().substring(0, userDetails.getEmailAddress().lastIndexOf("@"));
+        String principalName = name + "@" + tenant;
+
+        UserAccount existingUserAccount = userAccountRepository.findByEmail(userDetails.getEmailAddress());
+
+        if ( existingUserAccount != null ) {
+            log.debug(userDetails.getEmailAddress() + " exists");
+            throw new NameAlreadyExistsException(userDetails.getEmailAddress());
+        }
+
+        existingUserAccount = userAccountRepository.findByUsername(name);
+
+        if ( existingUserAccount != null ) {
+            log.debug(userDetails.getEmailAddress() + " exists");
+            throw new NameAlreadyExistsException(userDetails.getEmailAddress());
         }
 
         try {
+            
             AzureUser azureUser = AzureUser.builder()
                     .accountEnabled(Boolean.FALSE)
-                    .displayName(userDetails.getUserName())
-                    .mailNickname(userDetails.getUserName())
-                    .userPrincipalName(userDetails.getUserName() + "@" + tenant)
+                    .displayName(principalName)
+                    .mailNickname(name)
+                    .userPrincipalName(principalName)
                     .passwordProfile(new PasswordProfile(userDetails.getPassword(), false))
                     .build();
 
@@ -108,7 +141,15 @@ public class AzureUserAccountService {
             JSONObject jsonObject = new JSONObject(response.getBody());
             String userID = jsonObject.getString("id");
 
-            notifyService.emailEnableAccountCode(userDetails.getEmailAddress(), userID, userDetails.getUserName());
+            UserAccount userAccount = UserAccount.builder()
+                    .email(userDetails.getEmailAddress())
+                    .userid(userID)
+                    .username(principalName)
+                    .build();
+
+            userAccountRepository.save(userAccount);
+
+            notifyService.emailEnableAccountCode(userDetails.getEmailAddress(), userID);
 
             return userID;
 
@@ -127,6 +168,9 @@ public class AzureUserAccountService {
 		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<String> response = restTemplate.exchange(
                 String.format(usersURL, tenant) + "/" + userID, HttpMethod.DELETE, entity, String.class);
+
+        UserAccount userAccount = userAccountRepository.findByUserid(userID);
+        userAccountRepository.delete(userAccount);
 	}
 
     public List<AzureUser> getUsers() {
@@ -190,8 +234,8 @@ public class AzureUserAccountService {
                 ClientHttpRequestFactory requestFactory = getClientHttpRequestFactory();
 
                 String body = "grant_type=client_credentials";
-                body += "&client_id=" + clientID;
-                body += "&client_secret=" + clientSecret;
+                body += "&client_id=" + webClientID;
+                body += "&client_secret=" + webClientSecret;
                 body += "&resource=" + resourceURL;
 
                 URI uri = new URI(String.format(oauthURL, tenant));
@@ -202,6 +246,8 @@ public class AzureUserAccountService {
                 request.getBody().close();
 
                 ClientHttpResponse response = request.execute();
+                System.out.println("getAccessToken =" + response.getStatusCode() );
+
                 InputStream responseInputStream = response.getBody();
 
                 BufferedReader streamReader = new BufferedReader(
@@ -243,29 +289,100 @@ public class AzureUserAccountService {
 
     public void updateUser(String userID, AzureUser azureUser) {
 
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            String json = objectMapper.writeValueAsString(azureUser);
+        RestTemplate restTemplate = new RestTemplate();
+        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(10000);
+        requestFactory.setReadTimeout(10000);
 
-            RestTemplate restTemplate = new RestTemplate();
-            HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
-            requestFactory.setConnectTimeout(10000);
-            requestFactory.setReadTimeout(10000);
+        restTemplate.setRequestFactory(requestFactory);
 
-            restTemplate.setRequestFactory(requestFactory);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", getAccessToken());
+        headers.add("Content-Type", "application/json");
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Authorization", getAccessToken());
-            headers.add("Content-Type", "application/json");
+        String json = "{\"accountEnabled\":true}";
 
-            json = "{\"accountEnabled\":true}";
+        HttpEntity<String> entity = new HttpEntity<>(json, headers);
+        ResponseEntity<String> response = restTemplate.exchange(
+                String.format(usersURL + "/" + userID, tenant), HttpMethod.PATCH, entity, String.class);
 
-            HttpEntity<String> entity = new HttpEntity<>(json, headers);
-            ResponseEntity<String> response = restTemplate.exchange(
-                    String.format(usersURL + "/" + userID, tenant), HttpMethod.PATCH, entity, String.class);
+        if ( response.getStatusCode() != HttpStatus.NO_CONTENT ) {
+            throw new RuntimeException("Account could not be enabled");
         }
-        catch (JsonProcessingException ex) {
-            throw new RuntimeException(ex);
+    }
+
+    public String authenticate(String email, String password) {
+
+        try {
+            UserAccount userAccount = userAccountRepository.findByEmail(email);
+            AuthenticationResult authenticationResult = getUserAccessTokenFromUserCredentials(
+                    userAccount.getUsername(), password);
+            return authenticationResult.getUserInfo().getUniqueId();
+        }
+        catch (MalformedURLException | ServiceUnavailableException | InterruptedException | ExecutionException ex) {
+
+            if ( ex.getCause() instanceof AuthenticationException) {
+                throw (RuntimeException)ex.getCause();
+            }
+            else {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    private AuthenticationResult getUserAccessTokenFromUserCredentials(
+            String username, String password) throws
+            MalformedURLException, ServiceUnavailableException, InterruptedException, ExecutionException {
+
+        AuthenticationContext context;
+        AuthenticationResult result;
+        ExecutorService service = null;
+        try {
+            service = Executors.newFixedThreadPool(1);
+            context = new AuthenticationContext(authority, false, service);
+            Future<AuthenticationResult> future = context.acquireToken("https://graph.microsoft.com", nativeClientID, username, password,
+                    null);
+            result = future.get();
+        }
+        finally {
+            service.shutdown();
+        }
+
+        if (result == null) {
+            throw new ServiceUnavailableException(
+                    "authentication result was null");
+        }
+        return result;
+    }
+
+    private static String getUserInfoFromGraph(String accessToken) throws IOException {
+
+        URL url = new URL("https://graph.microsoft.com/v1.0/me");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+        conn.setRequestProperty("Accept","application/json");
+
+        int httpResponseCode = conn.getResponseCode();
+        if(httpResponseCode == 200) {
+            BufferedReader in = null;
+            StringBuilder response;
+            try{
+                in = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream()));
+                String inputLine;
+                response = new StringBuilder();
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+            } finally {
+                in.close();
+            }
+            return response.toString();
+        } else {
+            return String.format("Connection returned HTTP code: %s with message: %s",
+                    httpResponseCode, conn.getResponseMessage());
         }
     }
 }

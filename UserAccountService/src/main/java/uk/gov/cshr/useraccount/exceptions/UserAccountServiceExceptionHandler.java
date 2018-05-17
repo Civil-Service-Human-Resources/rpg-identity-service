@@ -1,5 +1,6 @@
 package uk.gov.cshr.useraccount.exceptions;
 
+import com.microsoft.aad.adal4j.AuthenticationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +35,13 @@ public class UserAccountServiceExceptionHandler extends ResponseEntityExceptionH
     public ResponseEntity<Object> handleNameAlreadyExsistsException(NameAlreadyExistsException ex, WebRequest request) {
         log.error(ex.getMessage(), ex);
         UserAccountError error = new UserAccountError(HttpStatus.IM_USED, ex.getMessage(), null);
+        return handleExceptionInternal(ex, error, new HttpHeaders(), error.getStatus(), request);
+    }
+
+    @ExceptionHandler({AuthenticationException.class})
+    public ResponseEntity<Object> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
+        log.error(ex.getMessage(), ex);
+        UserAccountError error = new UserAccountError(HttpStatus.FORBIDDEN, ex.getMessage(), null);
         return handleExceptionInternal(ex, error, new HttpHeaders(), error.getStatus(), request);
     }
 }

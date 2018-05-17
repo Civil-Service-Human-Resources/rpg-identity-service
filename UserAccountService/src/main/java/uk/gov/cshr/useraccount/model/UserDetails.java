@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserDetails implements Serializable {
 
-    private String userName;
+//    private String userName;
     private String emailAddress;
     private String password;
 }

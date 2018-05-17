@@ -19,7 +19,7 @@ public class NotifyService {
     @Value("${spring.notifyservice.accountEnableURL}")
     private String accountEnableURL;
 
-    public void emailEnableAccountCode(String emailAddress, String userID, String name) throws NotificationClientException {
+    public void emailEnableAccountCode(String emailAddress, String userID) throws NotificationClientException {
 
         NotificationClient client = new NotificationClient(notifyApiKey);
 

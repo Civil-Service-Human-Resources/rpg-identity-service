@@ -2,11 +2,11 @@ package uk.gov.cshr.useraccount.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.Charset;
-import java.util.List;
 import javax.inject.Inject;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +31,10 @@ import org.springframework.web.context.WebApplicationContext;
 import uk.gov.cshr.useraccount.UserAccountServiceApplication;
 import uk.gov.cshr.useraccount.model.AzureUser;
 import uk.gov.cshr.useraccount.model.UserDetails;
+import uk.gov.cshr.useraccount.repository.UserAccountRepository;
 import uk.gov.cshr.useraccount.service.AzureUserAccountService;
 
-//@Ignore
+@Ignore
 @ActiveProfiles("dev")
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, classes = UserAccountServiceApplication.class)
@@ -55,8 +56,10 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
     @Autowired
     private AzureUserAccountService azureUserAccountService;
 
-    private MockMvc mockMvc;
+    @Autowired
+    private UserAccountRepository userAccountRepository;
 
+    private MockMvc mockMvc;
 
     @Before
     public void before() {
@@ -73,50 +76,70 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
 
 	@Test
     public void testCreateAccount() throws Exception {
-
-        List<AzureUser> azureUsers = azureUserAccountService.getUsers();
-        int azureUsersSize = azureUsers.size();
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        String userName = "testuser" + azureUsersSize + 1;
-
-        UserDetails userDetails = UserDetails.builder()
-				.userName(userName)
-				.password("1234qwerQWER")
-				.emailAddress(testEmailAccount)
-				.build();
-
-        String json = objectMapper.writeValueAsString(userDetails);
-
-        MvcResult mvcResult = this.mockMvc.perform(post("/useraccount/create")
-				.with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
-                .contentType(APPLICATION_JSON_UTF8)
-                .content(json)
-                .accept(APPLICATION_JSON_UTF8))
-                .andExpect(status().isCreated())
-                .andReturn();
-
-        AzureUser azureUser = azureUserAccountService.getUser(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals("user created", userName, azureUser.getDisplayName());
         
-        this.mockMvc.perform(patch("/useraccount/enable/" + azureUser.getId())
-				.with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
-                .contentType(APPLICATION_JSON_UTF8)
-                .content(json)
-                .accept(APPLICATION_JSON_UTF8))
-                .andExpect(status().isAccepted())
-                .andReturn();
+        AzureUser azureUser = null;
 
-        mvcResult = this.mockMvc.perform(post("/useraccount/create")
-				.with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
-                .contentType(APPLICATION_JSON_UTF8)
-                .content(json)
-                .accept(APPLICATION_JSON_UTF8))
-                .andExpect(status().isImUsed())
-                .andReturn();
+        try {
 
-        System.out.println("Delete: " + azureUser.getId());
-        azureUserAccountService.delete(azureUser.getId());
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            UserDetails userDetails = UserDetails.builder()
+                    .password("1234qwerQWER")
+                    .emailAddress(testEmailAccount)
+                    .build();
+
+            String json = objectMapper.writeValueAsString(userDetails);
+
+            MvcResult mvcResult = this.mockMvc.perform(post("/useraccount/create")
+                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .contentType(APPLICATION_JSON_UTF8)
+                    .content(json)
+                    .accept(APPLICATION_JSON_UTF8))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            azureUser = azureUserAccountService.getUser(mvcResult.getResponse().getContentAsString());
+            Assert.assertEquals("user accounts created", 1, userAccountRepository.count());
+
+            // authenticate (before enabling)
+            this.mockMvc.perform(post("/useraccount/authenticate")
+                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .contentType(APPLICATION_JSON_UTF8)
+                    .content(json)
+                    .accept(APPLICATION_JSON_UTF8))
+                    .andExpect(status().isForbidden())
+                    .andReturn();
+
+            this.mockMvc.perform(patch("/useraccount/enable/" + azureUser.getId())
+                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .contentType(APPLICATION_JSON_UTF8)
+                    .content(json)
+                    .accept(APPLICATION_JSON_UTF8))
+                    .andExpect(status().isAccepted())
+                    .andReturn();
+
+            // authenticate (after enabling)
+            this.mockMvc.perform(post("/useraccount/authenticate")
+                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .contentType(APPLICATION_JSON_UTF8)
+                    .content(json)
+                    .accept(APPLICATION_JSON_UTF8))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            // create duplicate account
+            this.mockMvc.perform(post("/useraccount/create")
+                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .contentType(APPLICATION_JSON_UTF8)
+                    .content(json)
+                    .accept(APPLICATION_JSON_UTF8))
+                    .andExpect(status().isImUsed())
+                    .andReturn();
+        }
+        finally {
+            System.out.println("Delete: " + azureUser.getId());
+            azureUserAccountService.delete(azureUser.getId());
+            Assert.assertEquals("user accounts deleted", 0, userAccountRepository.count());
+        }
     }
 }

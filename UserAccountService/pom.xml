@@ -32,6 +32,17 @@
             <version>3.9.1-RELEASE</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>adal4j</artifactId>
+            <version>1.4.0</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+            <version>2.3</version>
+        </dependency>
     </dependencies>
     <name>UserAccountService</name>
 </project>

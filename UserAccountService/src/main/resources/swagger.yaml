@@ -16,6 +16,28 @@ tags:
   - name: User Account Service
     description: User accounts
 paths:
+  /useraccount/authenticate:
+    post:
+      tags:
+        - user-account-controller
+      summary: authenticate User Account
+      operationId: authenticate
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: userDetails
+          description: userDetails
+          required: true
+          schema:
+            $ref: '#/definitions/UserDetails'
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
   /useraccount/create:
     post:
       tags:
@@ -25,7 +47,7 @@ paths:
       consumes:
         - application/json
       produces:
-        - text/plain
+        - application/json
       parameters:
         - in: body
           name: userDetails
@@ -203,8 +225,6 @@ definitions:
   UserDetails:
     type: object
     properties:
-      userName:
-        type: string
       emailAddress:
         type: string
       password:
