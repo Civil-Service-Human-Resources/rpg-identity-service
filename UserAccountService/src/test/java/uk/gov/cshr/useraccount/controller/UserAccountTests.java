@@ -110,7 +110,7 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
                     .andExpect(status().isForbidden())
                     .andReturn();
 
-            this.mockMvc.perform(patch("/useraccount/enable/" + azureUser.getId())
+            this.mockMvc.perform(get("/useraccount/enable/" + azureUser.getId())
                     .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)

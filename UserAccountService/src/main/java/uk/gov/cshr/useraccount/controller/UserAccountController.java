@@ -49,7 +49,7 @@ public class UserAccountController {
         return ResponseEntity.created(uri).body(userID);
     }
 
-    @RequestMapping(method = RequestMethod.PATCH, value = "/enable/{userID}")
+    @RequestMapping(method = RequestMethod.GET, value = "/enable/{userID}")
     @ApiOperation(value = "Enable a User Account", nickname = "enable")
     public ResponseEntity<String> enable(@PathVariable String userID) {
 
