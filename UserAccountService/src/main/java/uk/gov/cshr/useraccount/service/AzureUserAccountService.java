@@ -149,12 +149,18 @@ public class AzureUserAccountService {
 
             userAccountRepository.save(userAccount);
 
-            notifyService.emailEnableAccountCode(userDetails.getEmailAddress(), userID);
+            try {
+                notifyService.emailEnableAccountCode(userDetails.getEmailAddress(), userID);
+            }
+            catch(NotificationClientException e) {
+                e.printStackTrace();
+            }
+
 
             return userID;
 
         }
-        catch (JsonProcessingException | JSONException | RestClientException | NotificationClientException e) {
+        catch (JsonProcessingException | JSONException | RestClientException  e) {
             throw new RuntimeException(e);
         }
     }
