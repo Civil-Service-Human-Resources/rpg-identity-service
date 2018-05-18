@@ -1,14 +1,14 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:USERS;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
-    username: sa
-    password:
+    url: jdbc:postgresql://localhost:5432/cshr
+    username: postgres
+    password: qwerty
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
     hibernate.ddl-auto: create # create schema on run
   test:
-    testEmailAccount:
+    testEmailAccount: 
   azure:
     activedirectory:
       usersURL: https://graph.microsoft.com/v1.0/%s/users
@@ -21,7 +21,7 @@ spring:
       authority: https://login.microsoftonline.com/common/
   notifyservice:
     templateid:
-    notifyApiKey: 
+    notifyApiKey:
     accountEnableURL: http://localhost:7676/useraccount/enable/%s
   security:
     identity_username: searchusername
