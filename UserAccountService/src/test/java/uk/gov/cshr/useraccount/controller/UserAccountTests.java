@@ -6,7 +6,6 @@ import javax.inject.Inject;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +33,7 @@ import uk.gov.cshr.useraccount.model.UserDetails;
 import uk.gov.cshr.useraccount.repository.UserAccountRepository;
 import uk.gov.cshr.useraccount.service.AzureUserAccountService;
 
-@Ignore
+//@Ignore
 @ActiveProfiles("dev")
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, classes = UserAccountServiceApplication.class)
@@ -92,19 +91,21 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
             String json = objectMapper.writeValueAsString(userDetails);
 
             MvcResult mvcResult = this.mockMvc.perform(post("/useraccount/create")
-                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
+                    .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))
                     .andExpect(status().isCreated())
                     .andReturn();
 
-            azureUser = azureUserAccountService.getUser(mvcResult.getResponse().getContentAsString());
+            azureUser = new ObjectMapper().readValue(
+                    mvcResult.getResponse().getContentAsString(), AzureUser.class);
+
             Assert.assertEquals("user accounts created", 1, userAccountRepository.count());
 
             // authenticate (before enabling)
             this.mockMvc.perform(post("/useraccount/authenticate")
-                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
+                    .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))
@@ -112,16 +113,24 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
                     .andReturn();
 
             this.mockMvc.perform(get("/useraccount/enable/" + azureUser.getId())
-                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
+                    .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))
                     .andExpect(status().isAccepted())
                     .andReturn();
 
+            try {
+                System.out.println("Pause while azure catches up");
+                Thread.sleep(10000);
+            }
+            catch(Exception e) {
+                e.printStackTrace();
+            }
+
             // authenticate (after enabling)
             this.mockMvc.perform(post("/useraccount/authenticate")
-                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
+                    .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))
@@ -130,7 +139,7 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
 
             // create duplicate account
             this.mockMvc.perform(post("/useraccount/create")
-                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
+                    .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))

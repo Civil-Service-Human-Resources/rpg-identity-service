@@ -96,7 +96,7 @@ public class AzureUserAccountService {
      * @return
      * @throws uk.gov.cshr.useraccount.exceptions.NameAlreadyExistsException
      */
-    public String create(UserDetails userDetails) throws NameAlreadyExistsException {
+    public AzureUser create(UserDetails userDetails) throws NameAlreadyExistsException {
 
         String name = userDetails.getEmailAddress().substring(0, userDetails.getEmailAddress().lastIndexOf("@"));
         String principalName = name + "@" + tenant;
@@ -141,6 +141,8 @@ public class AzureUserAccountService {
             JSONObject jsonObject = new JSONObject(response.getBody());
             String userID = jsonObject.getString("id");
 
+            azureUser.setId(userID);
+
             UserAccount userAccount = UserAccount.builder()
                     .email(userDetails.getEmailAddress())
                     .userid(userID)
@@ -158,7 +160,7 @@ public class AzureUserAccountService {
             }
 
 
-            return userID;
+            return azureUser;
 
         }
         catch (JsonProcessingException | JSONException | RestClientException  e) {

@@ -38,15 +38,16 @@ public class UserAccountController {
     @ApiResponses(value = {
             @ApiResponse(code = 226, message = "The username already exists", response = UserAccountError.class)
     })
-    public ResponseEntity<String> create(@RequestBody UserDetails userDetails) 
+    public ResponseEntity<AzureUser> create(@RequestBody UserDetails userDetails)
             throws NameAlreadyExistsException {
 
-        String userID = userAccountService.create(userDetails);
+        AzureUser azureUser = userAccountService.create(userDetails);
         URI uri = ServletUriComponentsBuilder
                 .fromCurrentRequest().path("/{id}")
-                .buildAndExpand(userID).toUri();
+                .buildAndExpand(azureUser.getId()).toUri();
 
-        return ResponseEntity.created(uri).body(userID);
+        azureUser.setPasswordProfile(null);
+        return ResponseEntity.created(uri).body(azureUser);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/enable/{userID}")
