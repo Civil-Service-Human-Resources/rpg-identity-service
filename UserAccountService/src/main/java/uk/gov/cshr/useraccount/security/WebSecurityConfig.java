@@ -16,11 +16,11 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @Value("${spring.security.crud_username}")
-    private String crudUsername;
+    @Value("${spring.security.identity_username}")
+    private String identityUsername;
 
-    @Value("${spring.security.crud_password}")
-    private String crudPassword;
+    @Value("${spring.security.identity_password}")
+    private String identityPassword;
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -34,8 +34,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
 
 		auth.inMemoryAuthentication()
-                .withUser(crudUsername)
-                .password(crudPassword)
-                .roles("CRUD_ROLE");
+                .withUser(identityUsername)
+                .password(identityPassword)
+                .roles("IDENTIY_ROLE");
 	}
 }

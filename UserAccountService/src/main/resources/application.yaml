@@ -24,7 +24,7 @@ spring:
     notifyApiKey: 
     accountEnableURL: http://localhost:7676/useraccount/enable/%s
   security:
-    crud_username: crudusername
-    crud_password: crudpassword
+    identity_username: searchusername
+    identity_password: searchpassword
 server:
   port: 7676

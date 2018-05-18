@@ -145,6 +145,7 @@ public class AzureUserAccountService {
                     .email(userDetails.getEmailAddress())
                     .userid(userID)
                     .username(principalName)
+                    .name(userDetails.getName())
                     .build();
 
             userAccountRepository.save(userAccount);

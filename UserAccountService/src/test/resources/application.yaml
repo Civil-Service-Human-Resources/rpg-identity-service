@@ -8,7 +8,7 @@ spring:
     show-sql: true
     hibernate.ddl-auto: create # create schema on run
   test:
-    testEmailAccount:
+    testEmailAccount: gordon.mackay@valtech.co.uk
   azure:
     activedirectory:
       usersURL: https://graph.microsoft.com/v1.0/%s/users
@@ -21,10 +21,10 @@ spring:
       authority: https://login.microsoftonline.com/common/
   notifyservice:
     templateid:
-    notifyApiKey:
+    notifyApiKey: 
     accountEnableURL: http://localhost:7676/useraccount/enable/%s
   security:
-    crud_username: crudusername
-    crud_password: crudpassword
+    identity_username: searchusername
+    identity_password: searchpassword
 server:
   port: 7676

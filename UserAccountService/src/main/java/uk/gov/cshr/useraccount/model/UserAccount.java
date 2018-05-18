@@ -47,4 +47,7 @@ public class UserAccount implements Serializable {
     @Builder.Default
     @Column(nullable = false)
     private Timestamp created = new Timestamp(new Date().getTime());
+
+    @Column(nullable = false)
+    private String name;
 }

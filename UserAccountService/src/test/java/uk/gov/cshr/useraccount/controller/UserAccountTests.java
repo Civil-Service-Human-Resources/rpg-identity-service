@@ -6,7 +6,6 @@ import javax.inject.Inject;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +33,7 @@ import uk.gov.cshr.useraccount.model.UserDetails;
 import uk.gov.cshr.useraccount.repository.UserAccountRepository;
 import uk.gov.cshr.useraccount.service.AzureUserAccountService;
 
-@Ignore
+//@Ignore
 @ActiveProfiles("dev")
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, classes = UserAccountServiceApplication.class)
@@ -86,12 +85,13 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
             UserDetails userDetails = UserDetails.builder()
                     .password("1234qwerQWER")
                     .emailAddress(testEmailAccount)
+                    .name("joe bloggs")
                     .build();
 
             String json = objectMapper.writeValueAsString(userDetails);
 
             MvcResult mvcResult = this.mockMvc.perform(post("/useraccount/create")
-                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))
@@ -103,7 +103,7 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
 
             // authenticate (before enabling)
             this.mockMvc.perform(post("/useraccount/authenticate")
-                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))
@@ -111,7 +111,7 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
                     .andReturn();
 
             this.mockMvc.perform(get("/useraccount/enable/" + azureUser.getId())
-                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))
@@ -120,7 +120,7 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
 
             // authenticate (after enabling)
             this.mockMvc.perform(post("/useraccount/authenticate")
-                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))
@@ -129,7 +129,7 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
 
             // create duplicate account
             this.mockMvc.perform(post("/useraccount/create")
-                    .with(user("crudusername").password("crudpassword").roles("CRUD_ROLE"))
+                    .with(user("identityusername").password("identitypassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)
                     .accept(APPLICATION_JSON_UTF8))

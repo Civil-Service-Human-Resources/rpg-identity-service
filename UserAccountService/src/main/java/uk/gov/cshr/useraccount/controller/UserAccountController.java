@@ -27,7 +27,7 @@ import uk.gov.cshr.useraccount.service.AzureUserAccountService;
 @RequestMapping(value = "/useraccount", produces = MediaType.APPLICATION_JSON_VALUE)
 @ResponseBody
 @Api(value = "useraccountservice")
-@RolesAllowed("CRUD_ROLE")
+@RolesAllowed("IDENTITY_ROLE")
 public class UserAccountController {
 
 	@Autowired
