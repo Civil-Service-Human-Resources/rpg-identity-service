@@ -98,7 +98,7 @@ public class AzureUserAccountService {
      */
     public AzureUser create(UserDetails userDetails) throws NameAlreadyExistsException {
 
-        String name = userDetails.getEmailAddress().substring(0, userDetails.getEmailAddress().lastIndexOf("@"));
+		String name = userDetails.getEmailAddress().replace("@", "");
         String principalName = name + "@" + tenant;
 
         UserAccount existingUserAccount = userAccountRepository.findByEmail(userDetails.getEmailAddress());
@@ -116,7 +116,7 @@ public class AzureUserAccountService {
         }
 
         try {
-            
+
             AzureUser azureUser = AzureUser.builder()
                     .accountEnabled(Boolean.FALSE)
                     .displayName(principalName)
@@ -192,7 +192,7 @@ public class AzureUserAccountService {
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.exchange(
                     String.format(usersURL, tenant), HttpMethod.GET, entity, String.class);
-            
+
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode responseNode = objectMapper.readTree(response.getBody());
             JsonNode usersNode = objectMapper.readTree(responseNode.get("value").toString());
