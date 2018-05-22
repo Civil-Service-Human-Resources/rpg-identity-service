@@ -13,5 +13,7 @@ public interface UserAccountRepository extends PagingAndSortingRepository<UserAc
 
     public UserAccount findByUsername(String username);
 
-    public UserAccount findByUserid(String email);
+    public UserAccount findByUserid(String userID);
+
+    public UserAccount findByUseridStartsWith(String userIDPrefix);
 }

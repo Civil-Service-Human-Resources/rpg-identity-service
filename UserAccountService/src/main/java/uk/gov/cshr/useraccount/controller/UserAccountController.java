@@ -54,6 +54,10 @@ public class UserAccountController {
     @ApiOperation(value = "Enable a User Account", nickname = "enable")
     public ResponseEntity<String> enable(@PathVariable String userID) {
 
+        if ( userID.length() != 6 ) {
+            return ResponseEntity.badRequest().build();
+        }
+
         userAccountService.enable(userID);
         return ResponseEntity.accepted().build();
     }

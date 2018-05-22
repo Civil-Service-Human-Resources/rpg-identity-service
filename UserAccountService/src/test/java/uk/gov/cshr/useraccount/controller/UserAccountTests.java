@@ -113,7 +113,16 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
                     .andExpect(status().isForbidden())
                     .andReturn();
 
+            // Check enable enforces a 6 char code
             this.mockMvc.perform(get("/useraccount/enable/" + azureUser.getId())
+                    .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
+                    .contentType(APPLICATION_JSON_UTF8)
+                    .content(json)
+                    .accept(APPLICATION_JSON_UTF8))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            this.mockMvc.perform(get("/useraccount/enable/" + azureUser.getId().substring(0, 6))
                     .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)

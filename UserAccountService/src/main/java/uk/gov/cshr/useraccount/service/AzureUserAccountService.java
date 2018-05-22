@@ -212,7 +212,9 @@ public class AzureUserAccountService {
         }
     }
 
-    public AzureUser getUser(String userID) {
+    public AzureUser getUser(String userIDPrefix) {
+
+        UserAccount userAccount = userAccountRepository.findByUseridStartsWith(userIDPrefix);
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -221,7 +223,7 @@ public class AzureUserAccountService {
             HttpEntity<String> entity = new HttpEntity<>(headers);
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.exchange(
-                    String.format(usersURL + "/" + userID, tenant), HttpMethod.GET, entity, String.class);
+                    String.format(usersURL + "/" + userAccount.getUserid(), tenant), HttpMethod.GET, entity, String.class);
 
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode responseNode = objectMapper.readTree(response.getBody());
@@ -288,11 +290,11 @@ public class AzureUserAccountService {
         return clientHttpRequestFactory;
     }
 
-    public void enable(String userID) {
+    public void enable(String userIDPrefix) {
 
-        AzureUser azureUser = getUser(userID);
+        AzureUser azureUser = getUser(userIDPrefix);
         azureUser.setAccountEnabled(true);
-        updateUser(userID, azureUser);
+        updateUser(azureUser.getId(), azureUser);
 
     }
 

@@ -27,7 +27,8 @@ public class NotifyService {
         stringBuilder.append(String.format(accountEnableURL, userID));
 
         Map<String, String> personalisation = new HashMap<>();
-        personalisation.put("message", userID);
+        personalisation.put("activationcode", userID.substring(0, 6));
+        personalisation.put("emailaddress", emailAddress);
         client.sendEmail(templateId, emailAddress, personalisation, "emailEnableAccountCode");
     }
 }
