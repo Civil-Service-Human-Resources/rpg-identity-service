@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import uk.gov.cshr.useraccount.exceptions.InvalidPasswordException;
 import uk.gov.cshr.useraccount.exceptions.NameAlreadyExistsException;
 import uk.gov.cshr.useraccount.exceptions.UserAccountError;
 import uk.gov.cshr.useraccount.model.AzureUser;
@@ -39,7 +40,7 @@ public class UserAccountController {
             @ApiResponse(code = 226, message = "The username already exists", response = UserAccountError.class)
     })
     public ResponseEntity<AzureUser> create(@RequestBody UserDetails userDetails)
-            throws NameAlreadyExistsException {
+            throws NameAlreadyExistsException, InvalidPasswordException {
 
         AzureUser azureUser = userAccountService.create(userDetails);
         URI uri = ServletUriComponentsBuilder

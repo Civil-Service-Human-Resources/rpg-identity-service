@@ -84,14 +84,45 @@ public class UserAccountTests extends AbstractTestNGSpringContextTests {
             ObjectMapper objectMapper = new ObjectMapper();
 
             UserDetails userDetails = UserDetails.builder()
-                    .password("1234qwerQWER")
+                    .password("2Short")
                     .emailAddress(testEmailAccount)
                     .name("joe bloggs")
                     .build();
 
             String json = objectMapper.writeValueAsString(userDetails);
 
+            // short password
             MvcResult mvcResult = this.mockMvc.perform(post("/useraccount/create")
+                    .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
+                    .contentType(APPLICATION_JSON_UTF8)
+                    .content(json)
+                    .accept(APPLICATION_JSON_UTF8))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            // only lowercase
+            userDetails.setPassword("1qwerqwer");
+            mvcResult = this.mockMvc.perform(post("/useraccount/create")
+                    .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
+                    .contentType(APPLICATION_JSON_UTF8)
+                    .content(json)
+                    .accept(APPLICATION_JSON_UTF8))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            // no digit or symbol
+            userDetails.setPassword("Qwertqwe");
+            mvcResult = this.mockMvc.perform(post("/useraccount/create")
+                    .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
+                    .contentType(APPLICATION_JSON_UTF8)
+                    .content(json)
+                    .accept(APPLICATION_JSON_UTF8))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            userDetails.setPassword("1234qwerQWER");
+
+            mvcResult = this.mockMvc.perform(post("/useraccount/create")
                     .with(user("searchusername").password("searchpassword").roles("IDENTITY_ROLE"))
                     .contentType(APPLICATION_JSON_UTF8)
                     .content(json)

@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 import javax.naming.ServiceUnavailableException;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -43,6 +44,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import uk.gov.cshr.useraccount.exceptions.InvalidPasswordException;
 import uk.gov.cshr.useraccount.exceptions.NameAlreadyExistsException;
 import uk.gov.cshr.useraccount.model.AzureUser;
 import uk.gov.cshr.useraccount.model.PasswordProfile;
@@ -96,7 +98,13 @@ public class AzureUserAccountService {
      * @return
      * @throws uk.gov.cshr.useraccount.exceptions.NameAlreadyExistsException
      */
-    public AzureUser create(UserDetails userDetails) throws NameAlreadyExistsException {
+    public AzureUser create(UserDetails userDetails) throws NameAlreadyExistsException, InvalidPasswordException {
+
+        List<String> errors = new ArrayList<>();
+
+        if ( ! isValidPassword(userDetails.getPassword(), errors) ) {
+            throw new InvalidPasswordException(errors);
+        }
 
 		String name = userDetails.getEmailAddress().replace("@", "");
         String principalName = name + "@" + tenant;
@@ -166,6 +174,36 @@ public class AzureUserAccountService {
         catch (JsonProcessingException | JSONException | RestClientException  e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static boolean isValidPassword(String password, List<String> errorList) {
+
+        Pattern specailCharPatten = Pattern.compile("[^a-z0-9 ]", Pattern.CASE_INSENSITIVE);
+        Pattern UpperCasePatten = Pattern.compile("[A-Z ]");
+        Pattern lowerCasePatten = Pattern.compile("[a-z ]");
+        Pattern digitCasePatten = Pattern.compile("[0-9 ]");
+        errorList.clear();
+
+        boolean flag = true;
+
+        if (password.length() < 8) {
+            errorList.add("Password lenght must have alleast 8 character.");
+            flag=false;
+        }
+        if (! (specailCharPatten.matcher(password).find() || digitCasePatten.matcher(password).find() ) ) {
+            errorList.add("Password must have at least one special character or digit.");
+            flag=false;
+        }
+        if (!UpperCasePatten.matcher(password).find()) {
+            errorList.add("Password must have at least one uppercase character.");
+            flag=false;
+        }
+        if (!lowerCasePatten.matcher(password).find()) {
+            errorList.add("Password must have at least one lowercase character.");
+            flag=false;
+        }
+
+        return flag;
     }
 
 	public void delete(String userID) {

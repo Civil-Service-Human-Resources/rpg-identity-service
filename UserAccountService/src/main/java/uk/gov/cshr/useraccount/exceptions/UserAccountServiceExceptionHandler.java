@@ -44,4 +44,11 @@ public class UserAccountServiceExceptionHandler extends ResponseEntityExceptionH
         UserAccountError error = new UserAccountError(HttpStatus.FORBIDDEN, ex.getMessage(), null);
         return handleExceptionInternal(ex, error, new HttpHeaders(), error.getStatus(), request);
     }
+
+    @ExceptionHandler({InvalidPasswordException.class})
+    public ResponseEntity<Object> handleAuthenticationException(InvalidPasswordException ex, WebRequest request) {
+        log.error(ex.getMessage(), ex);
+        UserAccountError error = new UserAccountError(HttpStatus.BAD_REQUEST, ex.getMessage(), ex.getErrors());
+        return handleExceptionInternal(ex, error, new HttpHeaders(), error.getStatus(), request);
+    }
 }
